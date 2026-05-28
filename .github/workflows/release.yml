@@ -46,7 +46,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          # armv7 dropped: argon2-cffi-bindings has no prebuilt wheel for it
+          # and cffi cross-compile under QEMU is unreliable. DSM 7 ARM NAS are arm64.
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

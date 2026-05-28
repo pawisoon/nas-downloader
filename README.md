@@ -19,7 +19,7 @@ Built for Synology DSM 7 NAS deployment via Portainer, but runs anywhere Docker 
 - Post-download integrity check: file size ±1 byte + magic-byte prefix
 - Single-user auth (argon2 hash, auto-generated password on first boot)
 - Dark mode UI by default; Tailwind + Alpine.js, no build step for development
-- Multi-arch Docker image (`linux/amd64`, `linux/arm64`, `linux/arm/v7`)
+- Multi-arch Docker image (`linux/amd64`, `linux/arm64`) — covers all DSM 7 NAS
 
 ---
 
