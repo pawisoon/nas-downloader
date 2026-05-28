@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from argon2 import PasswordHasher
+from sqlalchemy.pool import StaticPool
 
 from app import create_app
 
@@ -45,6 +46,11 @@ def app(tmp_path):
             "TESTING": True,
             "WTF_CSRF_ENABLED": False,
             "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            # Share single in-memory connection across worker threads
+            "SQLALCHEMY_ENGINE_OPTIONS": {
+                "connect_args": {"check_same_thread": False},
+                "poolclass": StaticPool,
+            },
             "STATE_DIR": str(state_dir),
             "DOWNLOAD_ROOT": str(data_dir),
             "PASSWORD_HASH": TEST_PASSWORD_HASH,

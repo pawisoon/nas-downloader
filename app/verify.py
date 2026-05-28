@@ -22,9 +22,7 @@ def verify_job(job: Job, manifest: Manifest, download_root: Path) -> VerifyResul
     if job.expected_bytes:
         size = path.stat().st_size
         if abs(size - job.expected_bytes) > 1:
-            return VerifyResult(
-                ok=False, reason=f"size {size} != expected {job.expected_bytes}"
-            )
+            return VerifyResult(ok=False, reason=f"size {size} != expected {job.expected_bytes}")
 
     if job.file_type and job.file_type in (manifest.expect_magic or {}):
         magic_hex: str = manifest.expect_magic[job.file_type]

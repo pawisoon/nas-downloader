@@ -26,13 +26,9 @@ class Manifest(db.Model):
     default_headers = db.Column(db.JSON, default=dict, nullable=False)
     status = db.Column(db.String(20), default="pending", nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=_now, nullable=False)
-    updated_at = db.Column(
-        db.DateTime(timezone=True), default=_now, onupdate=_now, nullable=False
-    )
+    updated_at = db.Column(db.DateTime(timezone=True), default=_now, onupdate=_now, nullable=False)
 
-    jobs = db.relationship(
-        "Job", backref="manifest", lazy="dynamic", cascade="all, delete-orphan"
-    )
+    jobs = db.relationship("Job", backref="manifest", lazy="dynamic", cascade="all, delete-orphan")
     log_entries = db.relationship(
         "LogEntry",
         backref="manifest_rel",

@@ -55,7 +55,9 @@ def upload_manifest():
         log.exception("manifest_to_db failed")
         return _err(str(exc), 500)
 
-    return jsonify({"id": manifest.id, "name": manifest.name, "job_count": manifest.jobs.count()}), 201
+    return jsonify(
+        {"id": manifest.id, "name": manifest.name, "job_count": manifest.jobs.count()}
+    ), 201
 
 
 @api_bp.route("/api/manifests/<manifest_id>")

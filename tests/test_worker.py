@@ -25,8 +25,17 @@ def worker_app(app):
     return app
 
 
-def _make_manifest(app, httpserver, *, files=None, retries=1, min_bytes=4,
-                   concurrent=3, expect_magic=None, retry_backoff_sec=0):
+def _make_manifest(
+    app,
+    httpserver,
+    *,
+    files=None,
+    retries=1,
+    min_bytes=4,
+    concurrent=3,
+    expect_magic=None,
+    retry_backoff_sec=0,
+):
     with app.app_context():
         m = Manifest(
             id=str(uuid.uuid4()),
@@ -45,8 +54,14 @@ def _make_manifest(app, httpserver, *, files=None, retries=1, min_bytes=4,
         db.session.flush()
 
         if files is None:
-            files = [{"url": httpserver.url_for("/file.bin"), "dest": "folder/file.bin",
-                      "type": None, "expected_bytes": 0}]
+            files = [
+                {
+                    "url": httpserver.url_for("/file.bin"),
+                    "dest": "folder/file.bin",
+                    "type": None,
+                    "expected_bytes": 0,
+                }
+            ]
 
         jobs = []
         for f in files:
@@ -125,6 +140,7 @@ def test_range_resume(worker_app, data_dir, httpserver):
     # Server returns 206 for Range request
     def handler(req):
         from werkzeug.wrappers import Response as WResponse
+
         if "Range" in req.headers:
             return WResponse(second_part, status=206, content_type="application/octet-stream")
         return WResponse(full_content, status=200, content_type="application/octet-stream")
@@ -132,9 +148,15 @@ def test_range_resume(worker_app, data_dir, httpserver):
     httpserver.expect_request("/file.bin").respond_with_handler(handler)
 
     manifest_id, [job_id] = _make_manifest(
-        worker_app, httpserver,
-        files=[{"url": httpserver.url_for("/file.bin"), "dest": "folder/file.bin",
-                "expected_bytes": len(full_content)}],
+        worker_app,
+        httpserver,
+        files=[
+            {
+                "url": httpserver.url_for("/file.bin"),
+                "dest": "folder/file.bin",
+                "expected_bytes": len(full_content),
+            }
+        ],
         min_bytes=1,
     )
     submit_manifest(manifest_id, worker_app)
@@ -171,9 +193,16 @@ def test_magic_mismatch_fails_job(worker_app, httpserver):
     httpserver.expect_request("/vid.webm").respond_with_data(bad_content, status=200)
 
     manifest_id, [job_id] = _make_manifest(
-        worker_app, httpserver,
-        files=[{"url": httpserver.url_for("/vid.webm"), "dest": "folder/vid.webm",
-                "type": "webm", "expected_bytes": 0}],
+        worker_app,
+        httpserver,
+        files=[
+            {
+                "url": httpserver.url_for("/vid.webm"),
+                "dest": "folder/vid.webm",
+                "type": "webm",
+                "expected_bytes": 0,
+            }
+        ],
         min_bytes=1,
         retries=1,
         expect_magic={"webm": "1A 45 DF A3"},
@@ -188,9 +217,16 @@ def test_correct_magic_succeeds(worker_app, httpserver):
     httpserver.expect_request("/vid.webm").respond_with_data(content, status=200)
 
     manifest_id, [job_id] = _make_manifest(
-        worker_app, httpserver,
-        files=[{"url": httpserver.url_for("/vid.webm"), "dest": "folder/vid.webm",
-                "type": "webm", "expected_bytes": 0}],
+        worker_app,
+        httpserver,
+        files=[
+            {
+                "url": httpserver.url_for("/vid.webm"),
+                "dest": "folder/vid.webm",
+                "type": "webm",
+                "expected_bytes": 0,
+            }
+        ],
         min_bytes=1,
         expect_magic={"webm": "1A 45 DF A3"},
     )
@@ -205,9 +241,11 @@ def test_min_bytes_too_small_fails(worker_app, httpserver):
     httpserver.expect_request("/tiny.bin").respond_with_data(b"hi", status=200)
 
     manifest_id, [job_id] = _make_manifest(
-        worker_app, httpserver,
-        files=[{"url": httpserver.url_for("/tiny.bin"), "dest": "folder/tiny.bin",
-                "expected_bytes": 0}],
+        worker_app,
+        httpserver,
+        files=[
+            {"url": httpserver.url_for("/tiny.bin"), "dest": "folder/tiny.bin", "expected_bytes": 0}
+        ],
         min_bytes=1000,  # 2 bytes downloaded, 1000 required
         retries=1,
     )
@@ -223,12 +261,17 @@ def test_cancel_before_start(worker_app, httpserver, data_dir):
     content = b"x" * 500
     httpserver.expect_request("/slow.bin").respond_with_data(content, status=200)
 
-    manifest_id, [job_id] = _make_manifest(worker_app, httpserver,
-                                            files=[{"url": httpserver.url_for("/slow.bin"),
-                                                    "dest": "folder/slow.bin", "expected_bytes": 0}],
-                                            min_bytes=1)
+    manifest_id, [job_id] = _make_manifest(
+        worker_app,
+        httpserver,
+        files=[
+            {"url": httpserver.url_for("/slow.bin"), "dest": "folder/slow.bin", "expected_bytes": 0}
+        ],
+        min_bytes=1,
+    )
 
     from app.worker import cancel_job
+
     cancel_job(job_id)
     submit_manifest(manifest_id, worker_app)
 
@@ -243,17 +286,31 @@ def test_cancel_before_start(worker_app, httpserver, data_dir):
 def test_fail_or_retry_schedules_retry(app):
     with app.app_context():
         m = Manifest(
-            id=str(uuid.uuid4()), name="T", dest_root="D", raw_json="{}",
-            concurrent=1, retries=3, retry_backoff_sec=60, min_bytes=1,
-            expect_magic={}, default_headers={}, status="running",
+            id=str(uuid.uuid4()),
+            name="T",
+            dest_root="D",
+            raw_json="{}",
+            concurrent=1,
+            retries=3,
+            retry_backoff_sec=60,
+            min_bytes=1,
+            expect_magic={},
+            default_headers={},
+            status="running",
         )
         db.session.add(m)
         db.session.flush()
         j = Job(
-            id=str(uuid.uuid4()), manifest_id=m.id, file_id="f1",
-            url="http://x", dest="a.bin", file_type=None,
-            extra_headers={}, expected_bytes=0,
-            status="running", attempt_count=1,
+            id=str(uuid.uuid4()),
+            manifest_id=m.id,
+            file_id="f1",
+            url="http://x",
+            dest="a.bin",
+            file_type=None,
+            extra_headers={},
+            expected_bytes=0,
+            status="running",
+            attempt_count=1,
         )
         db.session.add(j)
         db.session.commit()
@@ -269,17 +326,31 @@ def test_fail_or_retry_schedules_retry(app):
 def test_fail_or_retry_exhausted_marks_failed(app):
     with app.app_context():
         m = Manifest(
-            id=str(uuid.uuid4()), name="T", dest_root="D", raw_json="{}",
-            concurrent=1, retries=3, retry_backoff_sec=60, min_bytes=1,
-            expect_magic={}, default_headers={}, status="running",
+            id=str(uuid.uuid4()),
+            name="T",
+            dest_root="D",
+            raw_json="{}",
+            concurrent=1,
+            retries=3,
+            retry_backoff_sec=60,
+            min_bytes=1,
+            expect_magic={},
+            default_headers={},
+            status="running",
         )
         db.session.add(m)
         db.session.flush()
         j = Job(
-            id=str(uuid.uuid4()), manifest_id=m.id, file_id="f1",
-            url="http://x", dest="a.bin", file_type=None,
-            extra_headers={}, expected_bytes=0,
-            status="running", attempt_count=3,
+            id=str(uuid.uuid4()),
+            manifest_id=m.id,
+            file_id="f1",
+            url="http://x",
+            dest="a.bin",
+            file_type=None,
+            extra_headers={},
+            expected_bytes=0,
+            status="running",
+            attempt_count=3,
         )
         db.session.add(j)
         db.session.commit()
@@ -300,9 +371,7 @@ def test_concurrency_semaphore_created(worker_app, httpserver):
     content = b"ok" * 10
     httpserver.expect_request("/file.bin").respond_with_data(content, status=200)
 
-    manifest_id, [job_id] = _make_manifest(
-        worker_app, httpserver, concurrent=2, min_bytes=1
-    )
+    manifest_id, [job_id] = _make_manifest(worker_app, httpserver, concurrent=2, min_bytes=1)
     submit_manifest(manifest_id, worker_app)
     _wait_status(worker_app, job_id, "done")
 

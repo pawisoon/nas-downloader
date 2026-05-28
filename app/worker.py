@@ -99,8 +99,7 @@ def submit_manifest(manifest_id: str, app: Flask) -> None:
         needed = sum(j.expected_bytes for j in pending if j.expected_bytes)
         if needed and free < int(needed * 1.05):
             raise RuntimeError(
-                f"Insufficient disk space: {free / 1e9:.1f} GB free, "
-                f"need ~{needed / 1e9:.1f} GB"
+                f"Insufficient disk space: {free / 1e9:.1f} GB free, need ~{needed / 1e9:.1f} GB"
             )
 
         manifest.status = "running"
@@ -245,9 +244,7 @@ def _db_log(
     manifest_id: str | None = None,
 ) -> None:
     try:
-        entry = LogEntry(
-            level=level, message=message, job_id=job_id, manifest_id=manifest_id
-        )
+        entry = LogEntry(level=level, message=message, job_id=job_id, manifest_id=manifest_id)
         db.session.add(entry)
         db.session.commit()
     except Exception as exc:
@@ -420,9 +417,7 @@ def _do_download(
 
                 if now - last_db_write >= 2.0:
                     db.session.execute(
-                        sa_update(Job)
-                        .where(Job.id == job_id)
-                        .values(bytes_written=bytes_written)
+                        sa_update(Job).where(Job.id == job_id).values(bytes_written=bytes_written)
                     )
                     db.session.commit()
                     last_db_write = now
@@ -442,9 +437,7 @@ def _do_download(
         # ── integrity checks ──────────────────────────────────────────────
         actual_size = part_path.stat().st_size
         if actual_size < min_bytes:
-            raise ValueError(
-                f"downloaded file too small: {actual_size} < {min_bytes} bytes"
-            )
+            raise ValueError(f"downloaded file too small: {actual_size} < {min_bytes} bytes")
 
         if file_type and file_type in expect_magic:
             magic_hex = expect_magic[file_type]
@@ -452,9 +445,7 @@ def _do_download(
             with open(part_path, "rb") as f:
                 actual_magic = f.read(len(expected_magic))
             if actual_magic != expected_magic:
-                raise ValueError(
-                    f"magic mismatch: expected {magic_hex}, got {actual_magic.hex()}"
-                )
+                raise ValueError(f"magic mismatch: expected {magic_hex}, got {actual_magic.hex()}")
 
         os.replace(part_path, dest_path)  # atomic
 

@@ -51,9 +51,7 @@ def validate_manifest(data: dict) -> list[str]:
             seen_ids.add(f["id"])
 
         if "url" in f:
-            if not isinstance(f["url"], str) or not f["url"].startswith(
-                ("http://", "https://")
-            ):
+            if not isinstance(f["url"], str) or not f["url"].startswith(("http://", "https://")):
                 errors.append(f"{prefix}: url must be http or https")
 
         if "dest" in f:
