@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "nas-downloader"
+version = "0.1.0"
+description = "Manifest-driven file downloader for Synology NAS"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+dependencies = [
+    "flask>=3.0",
+    "flask-login>=0.6",
+    "flask-sqlalchemy>=3.1",
+    "flask-wtf>=1.2",
+    "argon2-cffi>=23.1",
+    "requests>=2.31",
+    "gunicorn>=21.2",
+    "sqlalchemy>=2.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Manifests – nas-downloader{% endblock %}
+
+{% block content %}
+<div x-data="manifestList()" x-init="init()">
+
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold">Download Manifests</h1>
+    <button @click="showUpload = !showUpload"
+            class="rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium hover:bg-indigo-500 transition-colors">
+      + Upload Manifest
+    </button>
+  </div>
+
+  <!-- Upload panel -->
+  <div x-show="showUpload" x-cloak class="mb-6 rounded-lg border border-gray-700 bg-gray-800 p-4">
+    <h2 class="mb-3 font-semibold text-gray-200">Upload manifest JSON</h2>
+    <div class="space-y-3">
+      <input type="file" accept=".json" @change="onFileChange"
+             class="block w-full text-sm text-gray-300
+                    file:mr-3 file:rounded file:border-0 file:bg-gray-700 file:px-3 file:py-1.5
+                    file:text-sm file:text-gray-200 file:cursor-pointer hover:file:bg-gray-600">
+      <div x-show="uploadError" class="text-sm text-red-400" x-text="uploadError"></div>
+      <button @click="uploadManifest()"
+              :disabled="!selectedFile || uploading"
+              class="rounded bg-indigo-600 px-4 py-1.5 text-sm font-medium hover:bg-indigo-500
+                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        <span x-show="!uploading">Upload</span>
+        <span x-show="uploading">Uploading…</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Manifests table -->
+  {% if manifests %}
+  <div class="overflow-hidden rounded-lg border border-gray-700">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-800 text-gray-400 uppercase text-xs">
+        <tr>
+          <th class="px-4 py-3 text-left">Name</th>
+          <th class="px-4 py-3 text-left">Status</th>
+          <th class="px-4 py-3 text-right">Jobs</th>
+          <th class="px-4 py-3 text-left">Created</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-700">
+        {% for m in manifests %}
+        <tr class="bg-gray-900 hover:bg-gray-800 transition-colors" id="manifest-row-{{ m.id }}">
+          <td class="px-4 py-3 font-medium">
+            <a href="{{ url_for('views.manifest_detail', manifest_id=m.id) }}"
+               class="hover:text-indigo-300 transition-colors">{{ m.name }}</a>
+          </td>
+          <td class="px-4 py-3">
+            {% set counts = m.job_counts() %}
+            <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium
+              {% if m.status == 'done' %}bg-green-800 text-green-200
+              {% elif m.status == 'running' %}bg-blue-800 text-blue-200
+              {% elif m.status == 'paused' %}bg-yellow-800 text-yellow-200
+              {% elif m.status == 'failed' %}bg-red-800 text-red-200
+              {% else %}bg-gray-700 text-gray-300{% endif %}">
+              {{ m.status }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-right text-gray-400">
+            {% set counts = m.job_counts() %}
+            <span class="text-green-400">{{ counts.get('done', 0) + counts.get('verified', 0) }}</span>
+            / {{ m.jobs.count() }}
+            {% if counts.get('failed', 0) %}
+            <span class="ml-1 text-red-400">({{ counts.get('failed', 0) }} failed)</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-400 text-xs">
+            {{ m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else '—' }}
+          </td>
+          <td class="px-4 py-3 text-right space-x-2">
+            {% if m.status in ('pending', 'failed', 'done') %}
+            <button onclick="startManifest('{{ m.id }}')"
+                    class="rounded bg-green-700 px-2 py-1 text-xs hover:bg-green-600">Start</button>
+            {% elif m.status == 'running' %}
+            <button onclick="pauseManifest('{{ m.id }}')"
+                    class="rounded bg-yellow-700 px-2 py-1 text-xs hover:bg-yellow-600">Pause</button>
+            {% elif m.status == 'paused' %}
+            <button onclick="startManifest('{{ m.id }}')"
+                    class="rounded bg-green-700 px-2 py-1 text-xs hover:bg-green-600">Resume</button>
+            {% endif %}
+            <a href="{{ url_for('views.manifest_detail', manifest_id=m.id) }}"
+               class="rounded bg-gray-700 px-2 py-1 text-xs hover:bg-gray-600">Detail</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="rounded-lg border border-dashed border-gray-700 py-16 text-center text-gray-500">
+    <p class="text-lg mb-2">No manifests yet</p>
+    <p class="text-sm">Upload a manifest JSON file to get started.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function manifestList() {
+  return {
+    showUpload: false,
+    selectedFile: null,
+    uploading: false,
+    uploadError: '',
+    init() {},
+    onFileChange(e) {
+      this.selectedFile = e.target.files[0] || null
+      this.uploadError = ''
+    },
+    async uploadManifest() {
+      if (!this.selectedFile) return
+      this.uploading = true
+      this.uploadError = ''
+      const form = new FormData()
+      form.append('manifest_file', this.selectedFile)
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || ''
+      try {
+        const r = await fetch('/api/manifests', { method: 'POST', headers: { 'X-CSRFToken': token }, body: form })
+        const data = await r.json()
+        if (!r.ok) { this.uploadError = data.error || 'Upload failed'; return }
+        window.location.reload()
+      } catch (e) {
+        this.uploadError = 'Network error: ' + e.message
+      } finally {
+        this.uploading = false
+      }
+    }
+  }
+}
+
+async function startManifest(id) {
+  await apiFetch(`/api/manifests/${id}/start`, { method: 'POST' })
+  window.location.reload()
+}
+async function pauseManifest(id) {
+  await apiFetch(`/api/manifests/${id}/pause`, { method: 'POST' })
+  window.location.reload()
+}
+</script>
+{% endblock %}

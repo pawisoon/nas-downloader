@@ -1,0 +1,30 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.egg
+
+# Test artifacts
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Runtime state (not committed)
+state/
+data/
+
+# Node (used only for Tailwind build)
+node_modules/
+package.json
+package-lock.json
+
+# Generated CSS (built by Dockerfile; CDN used locally)
+app/static/tailwind.min.css
+
+# Secrets
+.env
+*.env

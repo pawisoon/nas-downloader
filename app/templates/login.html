@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Login – nas-downloader{% endblock %}
+
+{% block content %}
+<div class="flex min-h-[70vh] items-center justify-center">
+  <div class="w-full max-w-sm">
+    <h1 class="mb-6 text-center text-2xl font-bold text-white">nas-downloader</h1>
+    <form method="post" class="rounded-lg border border-gray-700 bg-gray-800 p-6 shadow-lg space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div>
+        <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" required
+               class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white
+                      focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      </div>
+
+      <div>
+        <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required
+               class="w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-white
+                      focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+      </div>
+
+      <button type="submit"
+              class="w-full rounded bg-indigo-600 py-2 font-medium text-white
+                     hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors">
+        Sign in
+      </button>
+    </form>
+
+    <p class="mt-4 text-center text-xs text-gray-500">
+      Initial password is printed in container logs on first start.
+    </p>
+  </div>
+</div>
+{% endblock %}

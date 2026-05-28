@@ -1,0 +1,18 @@
+services:
+  nas-downloader:
+    image: ghcr.io/pawisoon/nas-downloader:latest
+    container_name: nas-downloader
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      USERNAME: admin
+      # Generate a hash: python3 -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourpassword'))"
+      # Leave empty to auto-generate on first start (password printed in logs + /state/initial_password.txt)
+      PASSWORD_HASH: ""
+      TZ: Europe/Warsaw
+      MAX_CONCURRENT_GLOBAL: "4"
+      # STATE_DIR and DOWNLOAD_ROOT are set inside the image; override only if needed
+    volumes:
+      - /volume1/downloads:/data
+      - /volume1/docker/nas-downloader/state:/state
