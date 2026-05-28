@@ -139,8 +139,12 @@ Navigate to `http://<nas-ip>:8080` and sign in.
 | `PASSWORD_HASH` | *(unset)* | Pre-computed argon2 hash. Takes precedence over `PASSWORD`. |
 | `TZ` | UTC | Container timezone |
 | `MAX_CONCURRENT_GLOBAL` | `4` | Hard cap on simultaneous downloads across all manifests |
+| `PUID` | `1000` | Host UID to run as — match your Synology user (find with `id` over SSH) |
+| `PGID` | `1000` | Host GID to run as — typically `100` (users) on Synology |
 | `STATE_DIR` | `/state` | SQLite DB, logs, secret key |
 | `DOWNLOAD_ROOT` | `/data` | Download destination root |
+
+**PUID/PGID tip** — if you get `unable to open database file` errors, the container can't write to your mounted volumes because the UIDs don't match. SSH to the NAS and run `id` to see your user's UID/GID, then set `PUID`/`PGID` in compose accordingly. The entrypoint chowns `/state` and `/data` to match on first start.
 
 If neither `PASSWORD` nor `PASSWORD_HASH` is set, a random password is auto-generated on first start, written to `/state/initial_password.txt`, and printed to the container logs.
 

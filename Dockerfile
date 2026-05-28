@@ -20,18 +20,26 @@ RUN python -m venv /venv \
 # ── Stage 3: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-RUN groupadd -g 1000 app && useradd -u 1000 -g app -s /bin/sh -m app
+# gosu lets the entrypoint drop privileges from root → app cleanly
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gosu \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -g 1000 app \
+ && useradd -u 1000 -g app -s /bin/sh -m app
 
 COPY --from=python-builder /venv /venv
 COPY app/ /app/app/
 COPY --from=css-builder /css/tailwind.min.css /app/app/static/tailwind.min.css
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 WORKDIR /app
 
 RUN mkdir -p /state /data \
  && chown -R app:app /state /data /app
 
-USER app
+# NOTE: no `USER app` here — entrypoint starts as root so it can remap
+# the app user to host PUID/PGID, then `gosu app` drops privileges.
 
 ENV STATE_DIR=/state \
     DOWNLOAD_ROOT=/data \
@@ -44,6 +52,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD /venv/bin/python -c \
       "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/venv/bin/gunicorn", \
      "--bind", "0.0.0.0:8080", \
      "--workers", "1", \

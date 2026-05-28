@@ -13,6 +13,9 @@ services:
       # (or leave both unset to auto-generate; printed to logs + /state/initial_password.txt)
       TZ: Europe/Warsaw
       MAX_CONCURRENT_GLOBAL: "4"
+      # Match Synology user UID/GID (find with `id` over SSH). Default 1000/1000.
+      PUID: "1026"
+      PGID: "100"
     volumes:
       - /volume1/downloads:/data
       - /volume1/docker/nas-downloader/state:/state
