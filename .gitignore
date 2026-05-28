@@ -28,3 +28,4 @@ app/static/tailwind.min.css
 # Secrets
 .env
 *.env
+.claude/

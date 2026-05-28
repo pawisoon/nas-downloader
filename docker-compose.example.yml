@@ -7,12 +7,12 @@ services:
       - "8080:8080"
     environment:
       USERNAME: admin
-      # Generate a hash: python3 -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourpassword'))"
-      # Leave empty to auto-generate on first start (password printed in logs + /state/initial_password.txt)
-      PASSWORD_HASH: ""
+      # Pick ONE password option (PASSWORD_HASH wins if both set):
+      PASSWORD: "change-me"          # plain — hashed on startup
+      # PASSWORD_HASH: '$$argon2id$$v=19$$...'   # pre-computed argon2 hash (use single quotes!)
+      # (or leave both unset to auto-generate; printed to logs + /state/initial_password.txt)
       TZ: Europe/Warsaw
       MAX_CONCURRENT_GLOBAL: "4"
-      # STATE_DIR and DOWNLOAD_ROOT are set inside the image; override only if needed
     volumes:
       - /volume1/downloads:/data
       - /volume1/docker/nas-downloader/state:/state

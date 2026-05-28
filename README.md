@@ -135,16 +135,22 @@ Navigate to `http://<nas-ip>:8080` and sign in.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `USERNAME` | `admin` | Login username |
-| `PASSWORD_HASH` | *(auto)* | argon2 hash of password. Auto-generated if empty. |
+| `PASSWORD` | *(unset)* | Plain password — hashed in memory on startup. Convenient for compose. |
+| `PASSWORD_HASH` | *(unset)* | Pre-computed argon2 hash. Takes precedence over `PASSWORD`. |
 | `TZ` | UTC | Container timezone |
 | `MAX_CONCURRENT_GLOBAL` | `4` | Hard cap on simultaneous downloads across all manifests |
 | `STATE_DIR` | `/state` | SQLite DB, logs, secret key |
 | `DOWNLOAD_ROOT` | `/data` | Download destination root |
 
-To generate a password hash manually:
+If neither `PASSWORD` nor `PASSWORD_HASH` is set, a random password is auto-generated on first start, written to `/state/initial_password.txt`, and printed to the container logs.
+
+Order of precedence: `PASSWORD_HASH` > `PASSWORD` > auto-generate.
+
+To generate a hash manually instead of using `PASSWORD`:
 
 ```bash
-python3 -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourpassword'))"
+docker run --rm ghcr.io/pawisoon/nas-downloader:latest \
+  /venv/bin/python -c "from argon2 import PasswordHasher; print(PasswordHasher().hash('yourpassword'))"
 ```
 
 ---

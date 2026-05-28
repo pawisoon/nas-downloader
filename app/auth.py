@@ -52,10 +52,21 @@ def verify_password(plain: str) -> bool:
 def init_password_if_needed(app: Flask) -> None:
     import os
 
-    # Config dict (e.g. from tests) takes precedence over env var
+    # Priority: app.config['PASSWORD_HASH'] (tests) > env PASSWORD_HASH > env PASSWORD (plain)
     cfg_hash = app.config.get("PASSWORD_HASH", "").strip()
     env_hash = os.environ.get("PASSWORD_HASH", "").strip()
-    existing = cfg_hash or env_hash
+    env_plain = os.environ.get("PASSWORD", "").strip()
+
+    if cfg_hash:
+        existing = cfg_hash
+    elif env_hash:
+        existing = env_hash
+    elif env_plain:
+        existing = _ph.hash(env_plain)
+        log.info("Hashed PASSWORD env var on startup (plain password not stored)")
+    else:
+        existing = ""
+
     if existing:
         app.config["PASSWORD_HASH"] = existing
         app.config["INITIAL_PASSWORD_GENERATED"] = False
