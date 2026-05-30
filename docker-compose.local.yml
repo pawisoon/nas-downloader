@@ -1,4 +1,4 @@
-# Local smoke test (NOT for Synology — that uses docker-compose.example.yml)
+# Local smoke test (not for Synology)
 services:
   nas-downloader:
     build: .
@@ -9,11 +9,9 @@ services:
       - "8090:8080"
     environment:
       USERNAME: admin
-      PASSWORD_HASH: ""        # auto-generate, read from logs
+      PASSWORD: "testpass"
       TZ: Europe/Warsaw
       MAX_CONCURRENT_GLOBAL: "2"
     volumes:
       - ./test-data:/data
       - ./test-state:/state
-    security_opt:
-      - no-new-privileges:true

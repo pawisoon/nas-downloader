@@ -1,21 +1,16 @@
+# Synology Portainer stack — paste in Editor, set PASSWORD, deploy.
 services:
   nas-downloader:
     image: ghcr.io/pawisoon/nas-downloader:latest
     container_name: nas-downloader
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8090:8080"      # change 8090 if port taken
     environment:
       USERNAME: admin
-      # Pick ONE password option (PASSWORD_HASH wins if both set):
-      PASSWORD: "change-me"          # plain — hashed on startup
-      # PASSWORD_HASH: '$$argon2id$$v=19$$...'   # pre-computed argon2 hash (use single quotes!)
-      # (or leave both unset to auto-generate; printed to logs + /state/initial_password.txt)
+      PASSWORD: "change-me"      # plain password — hashed on startup
       TZ: Europe/Warsaw
       MAX_CONCURRENT_GLOBAL: "4"
-      # Match Synology user UID/GID (find with `id` over SSH). Default 1000/1000.
-      PUID: "1026"
-      PGID: "100"
     volumes:
-      - /volume1/downloads:/data
-      - /volume1/docker/nas-downloader/state:/state
+      - /volume1/downloads:/data                            # where files go
+      - /volume1/docker/nas-downloader/state:/state         # SQLite + secrets
