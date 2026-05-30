@@ -93,6 +93,42 @@ def pause_manifest_route(manifest_id: str):
     return jsonify({"status": "paused"})
 
 
+@api_bp.route("/api/manifests/<manifest_id>/headers", methods=["PATCH"])
+@login_required
+def patch_manifest_headers(manifest_id: str):
+    """Merge new defaults.headers into the stored manifest.
+
+    Body: JSON object {"headers": {"Cookie": "...", "Referer": "..."}}.
+    Existing keys are overwritten; unspecified keys are kept. Useful for
+    rotating session cookies without re-uploading the whole manifest.
+    """
+    m = Manifest.query.get_or_404(manifest_id)
+    body = request.get_json(silent=True) or {}
+    new_headers = body.get("headers")
+    if not isinstance(new_headers, dict):
+        return _err('body must be {"headers": {...}}')
+    current = dict(m.default_headers or {})
+    current.update(new_headers)
+    m.default_headers = current
+    db.session.commit()
+    return jsonify({"headers": current})
+
+
+@api_bp.route("/api/manifests/<manifest_id>/retry-failed", methods=["POST"])
+@login_required
+def retry_failed_jobs(manifest_id: str):
+    """Bulk-retry every failed/skipped/corrupt job in this manifest."""
+    Manifest.query.get_or_404(manifest_id)
+    jobs = Job.query.filter(
+        Job.manifest_id == manifest_id,
+        Job.status.in_(["failed", "skipped", "corrupt"]),
+    ).all()
+    app_obj = current_app._get_current_object()
+    for j in jobs:
+        retry_job(j.id, app_obj)
+    return jsonify({"queued": len(jobs)})
+
+
 @api_bp.route("/api/manifests/<manifest_id>/verify", methods=["POST"])
 @login_required
 def verify_manifest_route(manifest_id: str):
