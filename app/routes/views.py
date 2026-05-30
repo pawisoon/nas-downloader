@@ -67,8 +67,9 @@ def manifests():
 def manifest_detail(manifest_id: str):
     manifest = Manifest.query.get_or_404(manifest_id)
     jobs = Job.query.filter_by(manifest_id=manifest_id).order_by(Job.dest).all()
+    job_dicts = [j.to_dict() for j in jobs]
 
-    # Group jobs by folder
+    # Group jobs by folder (used by template for grouped rendering)
     folders: dict[str, list] = {}
     for job in jobs:
         parts = job.dest.replace("\\", "/").split("/")
@@ -77,7 +78,7 @@ def manifest_detail(manifest_id: str):
 
     return render_template(
         "manifest_detail.html",
-        manifest=manifest,
+        manifest=manifest.to_dict(),
         folders=folders,
-        jobs=jobs,
+        jobs=job_dicts,
     )

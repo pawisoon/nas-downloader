@@ -2,7 +2,7 @@
 {% block title %}{{ manifest.name }} – nas-downloader{% endblock %}
 
 {% block content %}
-<div x-data="manifestDetail({{ manifest | tojson(indent=None) | tojson }}, {{ jobs | map(attribute='to_dict') | list | tojson }})"
+<div x-data='manifestDetail({{ manifest | tojson }}, {{ jobs | tojson }})'
      x-init="init()">
 
   <!-- Header -->
@@ -141,9 +141,8 @@
 </div>
 
 <script>
-function manifestDetail(manifestJson, jobsJson) {
-  const manifest = JSON.parse(manifestJson)
-  const initialJobs = JSON.parse(jobsJson)
+function manifestDetail(manifest, initialJobs) {
+  // Args are already-parsed JS objects (via Jinja `tojson` in x-data attr)
 
   return {
     manifestId: manifest.id,
