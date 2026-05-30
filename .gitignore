@@ -29,3 +29,7 @@ app/static/tailwind.min.css
 .env
 *.env
 .claude/
+
+# Local smoke test dirs
+test-data/
+test-state/
