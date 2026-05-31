@@ -93,6 +93,23 @@ def pause_manifest_route(manifest_id: str):
     return jsonify({"status": "paused"})
 
 
+@api_bp.route("/api/manifests/<manifest_id>", methods=["DELETE"])
+@login_required
+def delete_manifest(manifest_id: str):
+    """Delete manifest + all its jobs + log entries. Does NOT touch files on disk."""
+    m = Manifest.query.get_or_404(manifest_id)
+    # Cancel any running jobs first
+    running = Job.query.filter_by(manifest_id=manifest_id, status="running").all()
+    for j in running:
+        cancel_job(j.id)
+    # Delete log entries (no FK cascade configured for these)
+    LogEntry.query.filter_by(manifest_id=manifest_id).delete()
+    # Job rows cascade-delete via FK
+    db.session.delete(m)
+    db.session.commit()
+    return jsonify({"deleted": manifest_id})
+
+
 @api_bp.route("/api/manifests/<manifest_id>/headers", methods=["PATCH"])
 @login_required
 def patch_manifest_headers(manifest_id: str):
