@@ -310,14 +310,33 @@ def _do_download(
         _emit(manifest_id, {"type": "job_skipped", "job_id": job_id})
         return
 
+    # Skip if dest file already exists with correct size.
+    # Lets you re-upload a manifest (e.g. with fresh cookies) without
+    # re-downloading files already present on disk.
+    download_root = Path(_app_ref.config.get("DOWNLOAD_ROOT", "/data"))  # type: ignore[union-attr]
+    dest_path = download_root / manifest.dest_root / job.dest
+    if dest_path.exists() and dest_path.is_file():
+        existing_size = dest_path.stat().st_size
+        ok = (job.expected_bytes and abs(existing_size - job.expected_bytes) <= 1) or (
+            not job.expected_bytes and existing_size >= (manifest.min_bytes or 0)
+        )
+        if ok:
+            job.status = "done"
+            job.bytes_written = existing_size
+            job.completed_at = datetime.now(UTC)
+            db.session.commit()
+            _emit(
+                manifest_id,
+                {"type": "job_done", "job_id": job_id, "dest": job.dest, "skipped_existing": True},
+            )
+            return
+
     job.status = "running"
     job.attempt_count = (job.attempt_count or 0) + 1
     job.started_at = datetime.now(UTC)
     db.session.commit()
     _emit(manifest_id, {"type": "job_started", "job_id": job_id, "url": job.url})
 
-    download_root = Path(_app_ref.config.get("DOWNLOAD_ROOT", "/data"))  # type: ignore[union-attr]
-    dest_path = download_root / manifest.dest_root / job.dest
     part_path = dest_path.parent / (dest_path.name + ".part")
 
     attempt = job.attempt_count

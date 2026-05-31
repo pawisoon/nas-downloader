@@ -115,6 +115,63 @@ def test_successful_download(worker_app, data_dir, httpserver):
     assert (data_dir / "Downloads" / "folder" / "file.bin").read_bytes() == content
 
 
+def test_skip_existing_file_with_matching_size(worker_app, data_dir, httpserver):
+    """If dest file already exists with correct size, skip download → mark done."""
+    content = b"already-here-content"
+
+    # Pre-place file at expected destination
+    dest = data_dir / "Downloads" / "folder" / "file.bin"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(content)
+
+    # No HTTP expectation registered → if worker tries to fetch, test fails
+    manifest_id, [job_id] = _make_manifest(
+        worker_app,
+        httpserver,
+        files=[
+            {
+                "url": httpserver.url_for("/never-called.bin"),
+                "dest": "folder/file.bin",
+                "type": None,
+                "expected_bytes": len(content),
+            }
+        ],
+        min_bytes=1,
+    )
+    submit_manifest(manifest_id, worker_app)
+    job = _wait_status(worker_app, job_id, "done")
+    assert job.bytes_written == len(content)
+    # File on disk unchanged (no download happened)
+    assert dest.read_bytes() == content
+
+
+def test_skip_existing_size_mismatch_triggers_download(worker_app, data_dir, httpserver):
+    """If dest exists but size differs from expected_bytes, re-download."""
+    real_content = b"x" * 100
+    httpserver.expect_request("/file.bin").respond_with_data(real_content, status=200)
+
+    dest = data_dir / "Downloads" / "folder" / "file.bin"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(b"stale-different-size")  # 20 bytes, expected 100
+
+    manifest_id, [job_id] = _make_manifest(
+        worker_app,
+        httpserver,
+        files=[
+            {
+                "url": httpserver.url_for("/file.bin"),
+                "dest": "folder/file.bin",
+                "type": None,
+                "expected_bytes": 100,
+            }
+        ],
+        min_bytes=1,
+    )
+    submit_manifest(manifest_id, worker_app)
+    _wait_status(worker_app, job_id, "done")
+    assert dest.read_bytes() == real_content
+
+
 def test_part_file_removed_on_success(worker_app, data_dir, httpserver):
     content = b"data" * 20
     httpserver.expect_request("/file.bin").respond_with_data(content, status=200)
